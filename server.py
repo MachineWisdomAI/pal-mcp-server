@@ -689,6 +689,55 @@ async def handle_list_tools() -> list[Tool]:
     return tools
 
 
+async def _execute_with_progress(coro):
+    """
+    Run a tool coroutine while sending MCP progress notifications every ~15 seconds.
+
+    This prevents Claude Desktop's ~4 minute timeout from killing long-running
+    tool calls (e.g. slow model API responses that take 4-8 minutes).
+    """
+    # Get progress token from request context
+    progress_token = None
+    session = None
+    request_id = None
+    try:
+        ctx = server.request_context
+        if ctx.meta:
+            progress_token = ctx.meta.progressToken
+        session = ctx.session
+        request_id = ctx.request_id
+    except (LookupError, AttributeError):
+        pass
+
+    if not progress_token or not session:
+        # No progress token — client doesn't want progress updates, just await normally
+        return await coro
+
+    task = asyncio.create_task(coro)
+    tick = 0
+    while not task.done():
+        try:
+            await asyncio.wait_for(asyncio.shield(task), timeout=15.0)
+        except asyncio.TimeoutError:
+            tick += 1
+            elapsed = tick * 15
+            try:
+                await session.send_progress_notification(
+                    progress_token=progress_token,
+                    progress=float(tick),
+                    message=f"Model is thinking... ({elapsed}s elapsed)",
+                    related_request_id=request_id,
+                )
+            except Exception:
+                # Don't let notification failures kill the tool call
+                pass
+        except asyncio.CancelledError:
+            task.cancel()
+            raise
+
+    return task.result()
+
+
 @server.call_tool()
 async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
     """
@@ -807,7 +856,7 @@ async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[TextCon
         if not tool.requires_model():
             logger.debug(f"Tool {name} doesn't require model resolution - skipping model validation")
             # Execute tool directly without model context
-            return await tool.execute(arguments)
+            return await _execute_with_progress(tool.execute(arguments))
 
         # Handle auto mode at MCP boundary - resolve to specific model
         if model_name.lower() == "auto":
@@ -862,7 +911,7 @@ async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[TextCon
                 raise ToolExecutionError(ToolOutput(**file_size_check).model_dump_json())
 
         # Execute tool with pre-resolved model context
-        result = await tool.execute(arguments)
+        result = await _execute_with_progress(tool.execute(arguments))
         logger.info(f"Tool '{name}' execution completed")
 
         # Log completion to activity file
