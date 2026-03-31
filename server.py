@@ -709,31 +709,38 @@ async def _execute_with_progress(coro):
     except (LookupError, AttributeError):
         pass
 
-    if not progress_token or not session:
+    if progress_token is None or session is None:
         # No progress token — client doesn't want progress updates, just await normally
         return await coro
 
     task = asyncio.create_task(coro)
     tick = 0
-    while not task.done():
-        try:
-            await asyncio.wait_for(asyncio.shield(task), timeout=15.0)
-        except asyncio.TimeoutError:
-            tick += 1
-            elapsed = tick * 15
+    notification_failed = False
+    try:
+        while not task.done():
             try:
-                await session.send_progress_notification(
-                    progress_token=progress_token,
-                    progress=float(tick),
-                    message=f"Model is thinking... ({elapsed}s elapsed)",
-                    related_request_id=request_id,
-                )
-            except Exception:
-                # Don't let notification failures kill the tool call
-                pass
+                await asyncio.wait_for(asyncio.shield(task), timeout=15.0)
+            except asyncio.TimeoutError:
+                tick += 1
+                elapsed = tick * 15
+                try:
+                    await session.send_progress_notification(
+                        progress_token=progress_token,
+                        progress=float(tick),
+                        message=f"Model is thinking... ({elapsed}s elapsed)",
+                        related_request_id=request_id,
+                    )
+                except Exception as exc:
+                    if not notification_failed:
+                        logger.warning(f"Progress notification failed: {exc}")
+                        notification_failed = True
+    except asyncio.CancelledError:
+        task.cancel()
+        try:
+            await task
         except asyncio.CancelledError:
-            task.cancel()
-            raise
+            pass
+        raise
 
     return task.result()
 
