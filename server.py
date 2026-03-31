@@ -742,8 +742,8 @@ async def _execute_with_progress(coro):
         task.cancel()
         try:
             await task
-        except asyncio.CancelledError:
-            pass
+        except Exception:
+            pass  # Suppress inner task errors; outer CancelledError takes precedence
         raise
 
     return task.result()
