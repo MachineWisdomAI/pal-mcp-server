@@ -742,8 +742,8 @@ async def _execute_with_progress(coro):
         task.cancel()
         try:
             await task
-        except Exception:
-            pass  # Suppress inner task errors; outer CancelledError takes precedence
+        except Exception as exc:
+            logger.debug(f"Task raised during cancellation teardown: {exc}")
         raise
 
     return task.result()
