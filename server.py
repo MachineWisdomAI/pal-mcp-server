@@ -709,9 +709,13 @@ async def _execute_with_progress(coro):
     except (LookupError, AttributeError):
         pass
 
-    if progress_token is None or session is None:
-        # No progress token — client doesn't want progress updates, just await normally
+    if session is None:
         return await coro
+
+    # Claude Desktop omits progressToken but still times out after ~4 min.
+    # Use request_id as fallback — sending any notification keeps stdio alive.
+    if progress_token is None:
+        progress_token = request_id if request_id is not None else "pal-progress"
 
     task = asyncio.create_task(coro)
     tick = 0
