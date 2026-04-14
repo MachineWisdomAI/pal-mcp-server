@@ -698,7 +698,7 @@
       "intelligence_score": 17
     },
     {
-      "model_name": "minimax/minimax-m2-7",
+      "model_name": "minimax/minimax-m2.7",
       "aliases": [
         "minimax",
         "minimax-m2.7",

@@ -110,8 +110,8 @@ class TestOpenRouterModelRegistry:
             ("codex", "openai/gpt-5.3-codex"),
             ("codex-5.3", "openai/gpt-5.3-codex"),
             ("devstral", "mistralai/devstral-2512"),
-            ("qwen", "qwen/qwen3.5-397b-a17b"),
-            ("minimax", "minimax/minimax-m2.5"),
+            ("qwen", "qwen/qwen3.6-plus"),
+            ("minimax", "minimax/minimax-m2.7"),
             ("deepseek-v3", "deepseek/deepseek-v3.2-exp"),
         ]
 

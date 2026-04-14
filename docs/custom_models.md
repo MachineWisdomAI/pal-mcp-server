@@ -67,8 +67,11 @@ The curated defaults in `conf/openrouter_models.json` include popular entries su
 | `devstral` | `mistralai/devstral-2512` | 123B agentic coding model (262K context) |
 | `deepseek-r1` | `deepseek/deepseek-r1-0528` | DeepSeek reasoning model |
 | `deepseek-v3`, `dsv3` | `deepseek/deepseek-v3.2-exp` | DeepSeek V3.2 with strong reasoning (164K context) |
-| `qwen`, `qwen3.5` | `qwen/qwen3.5-397b-a17b` | Frontier 397B MoE reasoning model (262K context) |
-| `minimax`, `m2.5` | `minimax/minimax-m2.5` | SWE-Bench 80.2%, agent-optimized (197K context) |
+| `qwen` | `qwen/qwen3.6-plus` | Alibaba's latest frontier model (1M context). `qwen3.5` → 3.5 |
+| `minimax` | `minimax/minimax-m2.7` | 1T param model matching GPT-5.3-Codex. `m2.5` → 2.5 |
+| `hermes` | `nousresearch/hermes-4-405b` | Hybrid reasoning with deliberative alignment (131K context) |
+| `qwen-coder` | `qwen/qwen3-coder` | Frontier open-weight coding model, 480B MoE (262K context) |
+| `flash-lite` | `google/gemini-3.1-flash-lite-preview` | Cost-efficient Gemini flash variant (1M context) |
 
 Consult the JSON file for the full list, aliases, and capability flags. Add new entries as OpenRouter releases additional models.
 
